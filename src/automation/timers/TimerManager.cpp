@@ -167,3 +167,78 @@ bool TimerManager::hasAvailableTimerSlot() const {
 
     return availableTimerSlotExists;
 }
+
+uint8_t TimerManager::getActiveTimerCount() const {
+    uint8_t activeTimerCount = 0U;
+    uint8_t timerIndex = 0U;
+
+    while (
+        timerIndex <
+        RelaySystemLimits::MAX_ACTIVE_TIMERS
+    ) {
+        bool timerIsActive =
+            _timers[timerIndex].isActive();
+
+        if (timerIsActive) {
+            activeTimerCount++;
+        }
+
+        timerIndex++;
+    }
+
+    return activeTimerCount;
+}
+
+bool TimerManager::getActiveTimerStatusByIndex(
+    uint8_t activeTimerIndex,
+    uint32_t nowMs,
+    TimerStatus& timerStatus
+    ) const {
+    timerStatus.active = false;
+    timerStatus.relayId = 0U;
+    timerStatus.source = CommandSource::MANUAL;
+    timerStatus.remainingDurationMs = 0U;
+
+    bool timerStatusFound = false;
+    uint8_t timerIndex = 0U;
+    uint8_t foundActiveTimerCount = 0U;
+
+    while (
+        timerIndex <
+        RelaySystemLimits::MAX_ACTIVE_TIMERS &&
+        !timerStatusFound
+    ) {
+        const RelayTimer& currentTimer =
+            _timers[timerIndex];
+
+        bool timerIsActive =
+            currentTimer.isActive();
+
+        if (timerIsActive) {
+            bool currentTimerMatchesRequestedIndex =
+                (foundActiveTimerCount ==
+                 activeTimerIndex);
+
+            if (currentTimerMatchesRequestedIndex) {
+                timerStatus.active = true;
+                timerStatus.relayId =
+                    currentTimer.getRelayId();
+
+                timerStatus.source =
+                    currentTimer.getSource();
+
+                timerStatus.remainingDurationMs =
+                    currentTimer
+                        .getRemainingDurationMs(nowMs);
+
+                timerStatusFound = true;
+            }
+
+            foundActiveTimerCount++;
+        }
+
+        timerIndex++;
+    }
+
+    return timerStatusFound;
+}

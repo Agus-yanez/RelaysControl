@@ -6,24 +6,46 @@
 #include "relays/Relay.h"
 #include "relays/RelayManager.h"
 #include "relays/ActuatorCatalog.h"
+
 #include "automation/timers/TimerManager.h"
-#include "automation/commands/RelayCommandValidator.h"
+#include "automation/timers/TimerStatus.h"
+
 #include "automation/commands/RelayCommandProcessor.h"
 
-constexpr uint8_t WATER_PUMP_RELAY_PIN = 16;
-constexpr uint8_t EXTRACTOR_RELAY_PIN = 17;
-constexpr uint8_t LIGHT_RELAY_PIN = 18;
-constexpr uint8_t HUMIDIFIER_RELAY_PIN = 19;
+// --------------------------------------------------
+// Pines físicos
+// --------------------------------------------------
+
+constexpr uint8_t WATER_PUMP_RELAY_PIN = 16U;
+constexpr uint8_t EXTRACTOR_RELAY_PIN = 17U;
+constexpr uint8_t LIGHT_RELAY_PIN = 18U;
+constexpr uint8_t HUMIDIFIER_RELAY_PIN = 19U;
+
+// --------------------------------------------------
+// Consola serial
+// --------------------------------------------------
+
+constexpr uint8_t SERIAL_COMMAND_BUFFER_SIZE = 32U;
+
+char serialCommandBuffer[SERIAL_COMMAND_BUFFER_SIZE];
+uint8_t serialCommandLength = 0U;
+bool serialCommandOverflow = false;
+
+// --------------------------------------------------
+// Managers principales
+// --------------------------------------------------
 
 RelayManager relayManager;
 TimerManager timerManager;
-RelayCommandProcessor commandProcessor(relayManager,timerManager);
 
-constexpr bool ENABLE_TIMER_MANAGER_TEST = false;
-constexpr bool ENABLE_VALIDATOR_TEST = false;
+RelayCommandProcessor commandProcessor(
+    relayManager,
+    timerManager
+);
 
-constexpr uint32_t PRIMARY_TIMER_DURATION_MS = 5000U;
-constexpr uint32_t SECONDARY_TIMER_DURATION_MS = 8000U;
+// --------------------------------------------------
+// Configuraciones de seguridad por actuador
+// --------------------------------------------------
 
 const RelaySafetyConfig waterPumpSafetyConfig =
     ActuatorCatalog::getDefaultSafetyConfig(
@@ -45,10 +67,14 @@ const RelaySafetyConfig humidifierSafetyConfig =
         ActuatorType::HUMIDIFIER
     );
 
+// --------------------------------------------------
+// Configuración de relés
+// --------------------------------------------------
+
 RelayConfig waterPumpConfig = {
-    1,
+    1U,
     "Bomba agua",
-    16,
+    WATER_PUMP_RELAY_PIN,
     true,
     RelayState::OFF,
     true,
@@ -57,9 +83,9 @@ RelayConfig waterPumpConfig = {
 };
 
 RelayConfig extractorConfig = {
-    2,
+    2U,
     "Extractor",
-    17,
+    EXTRACTOR_RELAY_PIN,
     true,
     RelayState::OFF,
     true,
@@ -68,9 +94,9 @@ RelayConfig extractorConfig = {
 };
 
 RelayConfig lightConfig = {
-    3,
+    3U,
     "Luz",
-    18,
+    LIGHT_RELAY_PIN,
     true,
     RelayState::OFF,
     true,
@@ -79,9 +105,9 @@ RelayConfig lightConfig = {
 };
 
 RelayConfig humidifierConfig = {
-    4,
+    4U,
     "Humidificador",
-    19,
+    HUMIDIFIER_RELAY_PIN,
     true,
     RelayState::OFF,
     true,
@@ -89,10 +115,18 @@ RelayConfig humidifierConfig = {
     humidifierSafetyConfig
 };
 
+// --------------------------------------------------
+// Objetos Relay
+// --------------------------------------------------
+
 Relay waterPumpRelay(waterPumpConfig);
 Relay extractorRelay(extractorConfig);
 Relay lightRelay(lightConfig);
 Relay humidifierRelay(humidifierConfig);
+
+// --------------------------------------------------
+// Conversión de enums a texto
+// --------------------------------------------------
 
 const char* getCommandResultCodeText(
     CommandResultCode code
@@ -176,203 +210,6 @@ const char* getCommandResultCodeText(
     return codeText;
 }
 
-RelayCommand createCommand(
-    uint8_t relayId,
-    RelayCommandAction action,
-    CommandSource source,
-    bool hasDuration,
-    uint32_t durationMs,
-    RelayLockReason lockReason
-) {
-    RelayCommand command = {
-        relayId,
-        action,
-        source,
-        hasDuration,
-        durationMs,
-        lockReason
-    };
-
-    return command;
-}
-
-void printValidationResult(
-    const char* testName,
-    const RelayCommandResult& result
-) {
-    Serial.println();
-    Serial.print("Prueba: ");
-    Serial.println(testName);
-
-    Serial.print("Aceptado: ");
-    Serial.println(result.accepted ? "SI" : "NO");
-
-    Serial.print("Codigo: ");
-    Serial.println(
-        getCommandResultCodeText(result.code)
-    );
-
-    Serial.print("Espera restante: ");
-    Serial.print(result.remainingWaitMs);
-    Serial.println(" ms");
-}
-
-void testRelayCommandValidator() {
-    RelayCommand lightManualCommand = createCommand(
-        3,
-        RelayCommandAction::TURN_ON,
-        CommandSource::MANUAL,
-        false,
-        0U,
-        RelayLockReason::NONE
-    );
-
-    RelayCommand pumpWithoutDurationCommand =
-        createCommand(
-            1,
-            RelayCommandAction::TURN_ON,
-            CommandSource::MANUAL,
-            false,
-            0U,
-            RelayLockReason::NONE
-        );
-    
-    RelayCommand pumpZeroDurationCommand =
-        createCommand(
-            1,
-            RelayCommandAction::TURN_ON,
-            CommandSource::MANUAL,
-            true,
-            0U,
-            RelayLockReason::NONE
-        );
-
-    RelayCommand pumpExceedingDurationCommand =
-        createCommand(
-            1,
-            RelayCommandAction::TURN_ON,
-            CommandSource::MANUAL,
-            true,
-            900000U,
-            RelayLockReason::NONE
-        );
-
-    RelayCommand pumpValidTimedCommand =
-        createCommand(
-            1,
-            RelayCommandAction::TURN_ON,
-            CommandSource::MANUAL,
-            true,
-            30000U,
-            RelayLockReason::NONE
-        );
-
-    RelayCommandResult lightManualResult =
-        RelayCommandValidator::validate(
-            lightRelay,
-            lightManualCommand,
-            timerManager
-        );
-
-    RelayCommandResult pumpWithoutDurationResult =
-        RelayCommandValidator::validate(
-            waterPumpRelay,
-            pumpWithoutDurationCommand,
-            timerManager
-        );
-
-    RelayCommandResult pumpZeroDurationResult =
-        RelayCommandValidator::validate(
-            waterPumpRelay,
-            pumpZeroDurationCommand,
-            timerManager
-        );
-
-    RelayCommandResult pumpExceedingDurationResult =
-        RelayCommandValidator::validate(
-            waterPumpRelay,
-            pumpExceedingDurationCommand,
-            timerManager
-        );
-
-    RelayCommandResult pumpValidTimedResult =
-        RelayCommandValidator::validate(
-            waterPumpRelay,
-            pumpValidTimedCommand,
-            timerManager
-        );
-
-    bool timerStarted = timerManager.startTimer(
-        3,
-        30000U,
-        CommandSource::MANUAL
-    );
-
-    RelayCommand lightWithActiveTimerCommand =
-        createCommand(
-            3,
-            RelayCommandAction::TURN_ON,
-            CommandSource::MANUAL,
-            false,
-            0U,
-            RelayLockReason::NONE
-        );
-
-    RelayCommandResult lightWithActiveTimerResult =
-        RelayCommandValidator::validate(
-            lightRelay,
-            lightWithActiveTimerCommand,
-            timerManager
-        );
-
-    bool timerCancelled = timerManager.cancelTimer(3);
-
-    Serial.println();
-    Serial.println(
-        "----- PRUEBA RELAY COMMAND VALIDATOR -----"
-    );
-
-    printValidationResult(
-        "Luz ON manual continuo",
-        lightManualResult
-    );
-
-    printValidationResult(
-        "Bomba sin duracion",
-        pumpWithoutDurationResult
-    );
-
-    printValidationResult(
-    "Bomba con duracion cero",
-        pumpZeroDurationResult
-    );
-
-    printValidationResult(
-        "Bomba excede maximo",
-        pumpExceedingDurationResult
-    );
-
-    printValidationResult(
-        "Bomba temporizada al iniciar",
-        pumpValidTimedResult
-    );
-
-    Serial.print("Timer de prueba creado: ");
-    Serial.println(timerStarted ? "SI" : "NO");
-
-    printValidationResult(
-        "Luz con timer activo",
-        lightWithActiveTimerResult
-    );
-
-    Serial.print("Timer de prueba cancelado: ");
-    Serial.println(timerCancelled ? "SI" : "NO");
-
-    Serial.println(
-        "------------------------------------------"
-    );
-}
-
 const char* getCommandSourceText(
     CommandSource source
 ) {
@@ -415,158 +252,95 @@ const char* getCommandSourceText(
     return sourceText;
 }
 
-void startTimerManagerTest() {
-    bool primaryTimerStarted =
-        timerManager.startTimer(
-            1,
-            PRIMARY_TIMER_DURATION_MS,
-            CommandSource::MANUAL
-        );
+// --------------------------------------------------
+// Estado del sistema
+// --------------------------------------------------
 
-    bool duplicateTimerStarted =
-        timerManager.startTimer(
-            1,
-            PRIMARY_TIMER_DURATION_MS,
-            CommandSource::MANUAL
-        );
-
-    bool secondaryTimerStarted =
-        timerManager.startTimer(
-            2,
-            SECONDARY_TIMER_DURATION_MS,
-            CommandSource::SCHEDULE
-        );
-
-    bool secondaryTimerCancelled =
-        timerManager.cancelTimer(2);
+void printActiveTimersStatus() {
+    uint8_t activeTimerCount =
+        timerManager.getActiveTimerCount();
 
     Serial.println();
-    Serial.println("----- PRUEBA TIMER MANAGER -----");
+    Serial.println("----- TIMERS ACTIVOS -----");
 
-    Serial.print("Timer relay 1 creado: ");
-    Serial.println(primaryTimerStarted ? "SI" : "NO");
+    if (activeTimerCount == 0U) {
+        Serial.println("No hay timers activos.");
+    } else {
+        uint32_t nowMs = millis();
+        uint8_t activeTimerIndex = 0U;
 
-    Serial.print("Timer duplicado relay 1 creado: ");
-    Serial.println(duplicateTimerStarted ? "SI" : "NO");
+        while (activeTimerIndex < activeTimerCount) {
+            TimerStatus timerStatus;
 
-    Serial.print("Timer relay 2 creado: ");
-    Serial.println(secondaryTimerStarted ? "SI" : "NO");
+            bool timerStatusFound =
+                timerManager.getActiveTimerStatusByIndex(
+                    activeTimerIndex,
+                    nowMs,
+                    timerStatus
+                );
 
-    Serial.print("Timer relay 2 cancelado: ");
-    Serial.println(secondaryTimerCancelled ? "SI" : "NO");
+            if (timerStatusFound) {
+                Serial.print("Relay ID: ");
+                Serial.print(timerStatus.relayId);
 
-    Serial.println(
-        "Esperando vencimiento del timer del relay 1..."
-    );
+                Serial.print(" | Origen: ");
+                Serial.print(
+                    getCommandSourceText(
+                        timerStatus.source
+                    )
+                );
 
-    Serial.println("--------------------------------");
-}
+                Serial.print(" | Restante: ");
+                Serial.print(
+                    timerStatus.remainingDurationMs
+                );
 
-void updateTimerManagerTest() {
-    RelayTimer expiredTimer;
+                Serial.println(" ms");
+            }
 
-    bool expiredTimerFound = true;
-
-    while (expiredTimerFound) {
-        expiredTimerFound =
-            timerManager.takeNextExpiredTimer(
-                millis(),
-                expiredTimer
-            );
-
-        if (expiredTimerFound) {
-            Serial.println();
-            Serial.println("----- TIMER VENCIDO -----");
-
-            Serial.print("Relay ID: ");
-            Serial.println(expiredTimer.getRelayId());
-
-            Serial.print("Origen: ");
-            Serial.println(
-                getCommandSourceText(
-                    expiredTimer.getSource()
-                )
-            );
-
-            Serial.println("-------------------------");
+            activeTimerIndex++;
         }
     }
+
+    Serial.println("--------------------------");
 }
 
-void printActuatorDefinition(
-    const ActuatorDefinition* definition
+void printSystemStatus() {
+    relayManager.printStatus();
+    printActiveTimersStatus();
+}
+
+// --------------------------------------------------
+// Parser de parámetros
+// --------------------------------------------------
+
+bool parseRelayId(
+    const char* valueText,
+    uint8_t& relayId
 ) {
-    if (definition != nullptr) {
-        const RelaySafetyConfig& safetyConfig =
-            definition->defaultSafetyConfig;
-
-        Serial.println();
-        Serial.println("----- ACTUADOR -----");
-
-        Serial.print("Clave: ");
-        Serial.println(definition->stableKey);
-
-        Serial.print("Nombre: ");
-        Serial.println(definition->displayName);
-
-        Serial.print("Maximo ON (ms): ");
-        Serial.println(safetyConfig.maxOnDurationMs);
-
-        Serial.print("Minimo OFF (ms): ");
-        Serial.println(safetyConfig.minOffDurationMs);
-
-        Serial.print("Operacion continua: ");
-        Serial.println(
-            safetyConfig.allowContinuousOperation ? "SI" : "NO"
-        );
-
-        Serial.print("Manual continuo: ");
-        Serial.println(
-            safetyConfig.allowContinuousManualOn ? "SI" : "NO"
-        );
-
-        Serial.print("Manual temporizado obligatorio: ");
-        Serial.println(
-            safetyConfig.requireTimedManualControl ? "SI" : "NO"
-        );
-
-        Serial.println("---------------------");
-    }
-}
-
-void testActuatorCatalog() {
-    const ActuatorDefinition* waterPumpDefinition =
-        ActuatorCatalog::findByType(
-            ActuatorType::WATER_PUMP
-        );
-
-    const ActuatorDefinition* lightDefinition =
-        ActuatorCatalog::findByStableKey(
-            "LIGHT"
-        );
-
-    printActuatorDefinition(waterPumpDefinition);
-    printActuatorDefinition(lightDefinition);
-}
-
-constexpr uint8_t SERIAL_COMMAND_BUFFER_SIZE = 32;
-
-char serialCommandBuffer[SERIAL_COMMAND_BUFFER_SIZE];
-uint8_t serialCommandLength = 0;
-bool serialCommandOverflow = false;
-
-bool parseRelayId(const char* valueText, uint8_t& relayId) {
     bool relayIdIsValid = false;
 
-    char* endPosition = nullptr;
-    unsigned long parsedValue = strtoul(valueText, &endPosition, 10);
+    if (valueText != nullptr) {
+        char* endPosition = nullptr;
 
-    bool numericTextIsValid = (endPosition != valueText && *endPosition == '\0');
-    bool valueWithinRange = (parsedValue > 0 && parsedValue <= 255);
+        unsigned long parsedValue = strtoul(
+            valueText,
+            &endPosition,
+            10
+        );
 
-    if (numericTextIsValid && valueWithinRange) {
-        relayId = static_cast<uint8_t>(parsedValue);
-        relayIdIsValid = true;
+        bool numericTextIsValid =
+            (endPosition != valueText &&
+             *endPosition == '\0');
+
+        bool valueWithinRange =
+            (parsedValue > 0U &&
+             parsedValue <= 255U);
+
+        if (numericTextIsValid && valueWithinRange) {
+            relayId = static_cast<uint8_t>(parsedValue);
+            relayIdIsValid = true;
+        }
     }
 
     return relayIdIsValid;
@@ -602,6 +376,10 @@ bool parseDurationMs(
 
     return durationIsValid;
 }
+
+// --------------------------------------------------
+// Resultado de comandos
+// --------------------------------------------------
 
 void printProcessedCommandResult(
     const RelayCommand& command,
@@ -663,6 +441,10 @@ void printProcessedCommandResult(
     }
 }
 
+// --------------------------------------------------
+// Procesamiento de comandos seriales
+// --------------------------------------------------
+
 void processTurnOnCommand(
     const char* arguments
 ) {
@@ -671,11 +453,11 @@ void processTurnOnCommand(
     strncpy(
         commandCopy,
         arguments,
-        SERIAL_COMMAND_BUFFER_SIZE - 1
+        SERIAL_COMMAND_BUFFER_SIZE - 1U
     );
 
     commandCopy[
-        SERIAL_COMMAND_BUFFER_SIZE - 1
+        SERIAL_COMMAND_BUFFER_SIZE - 1U
     ] = '\0';
 
     char* parsingContext = nullptr;
@@ -763,11 +545,11 @@ void processSimpleRelayCommand(
     strncpy(
         commandCopy,
         arguments,
-        SERIAL_COMMAND_BUFFER_SIZE - 1
+        SERIAL_COMMAND_BUFFER_SIZE - 1U
     );
 
     commandCopy[
-        SERIAL_COMMAND_BUFFER_SIZE - 1
+        SERIAL_COMMAND_BUFFER_SIZE - 1U
     ] = '\0';
 
     char* parsingContext = nullptr;
@@ -822,13 +604,27 @@ void processSimpleRelayCommand(
 void printCommandHelp() {
     Serial.println();
     Serial.println("Comandos disponibles:");
-    Serial.println("  help              -> Muestra esta ayuda");
-    Serial.println("  status            -> Muestra estado de reles");
-    Serial.println("  on <id>           -> ON manual continuo");
-    Serial.println("  on <id> <ms>      -> ON temporizado");
-    Serial.println("  off <id>          -> OFF y cancela timer");
-    Serial.println("  lock <id>         -> Bloquea y apaga rele");
-    Serial.println("  unlock <id>       -> Desbloquea y mantiene OFF");
+    Serial.println(
+        "  help              -> Muestra esta ayuda"
+    );
+    Serial.println(
+        "  status            -> Muestra estado de reles y timers"
+    );
+    Serial.println(
+        "  on <id>           -> ON manual continuo"
+    );
+    Serial.println(
+        "  on <id> <ms>      -> ON temporizado"
+    );
+    Serial.println(
+        "  off <id>          -> OFF y cancela timer"
+    );
+    Serial.println(
+        "  lock <id>         -> Bloquea y apaga rele"
+    );
+    Serial.println(
+        "  unlock <id>       -> Desbloquea y mantiene OFF"
+    );
     Serial.println();
 }
 
@@ -841,12 +637,12 @@ void processRelayCommand(
         printCommandHelp();
         commandWasHandled = true;
     } else if (strcmp(command, "status") == 0) {
-        relayManager.printStatus();
+        printSystemStatus();
         commandWasHandled = true;
-    } else if (strncmp(command, "on ", 3) == 0) {
+    } else if (strncmp(command, "on ", 3U) == 0) {
         processTurnOnCommand(command + 3);
         commandWasHandled = true;
-    } else if (strncmp(command, "off ", 4) == 0) {
+    } else if (strncmp(command, "off ", 4U) == 0) {
         processSimpleRelayCommand(
             command + 4,
             RelayCommandAction::TURN_OFF,
@@ -854,7 +650,7 @@ void processRelayCommand(
         );
 
         commandWasHandled = true;
-    } else if (strncmp(command, "lock ", 5) == 0) {
+    } else if (strncmp(command, "lock ", 5U) == 0) {
         processSimpleRelayCommand(
             command + 5,
             RelayCommandAction::LOCK,
@@ -862,7 +658,7 @@ void processRelayCommand(
         );
 
         commandWasHandled = true;
-    } else if (strncmp(command, "unlock ", 7) == 0) {
+    } else if (strncmp(command, "unlock ", 7U) == 0) {
         processSimpleRelayCommand(
             command + 7,
             RelayCommandAction::UNLOCK,
@@ -881,29 +677,40 @@ void processRelayCommand(
 
 void processSerialInput() {
     while (Serial.available() > 0) {
-        char receivedCharacter = static_cast<char>(Serial.read());
+        char receivedCharacter =
+            static_cast<char>(Serial.read());
 
         bool commandEnded =
-            (receivedCharacter == '\n' || receivedCharacter == '\r');
+            (receivedCharacter == '\n' ||
+             receivedCharacter == '\r');
 
         if (commandEnded) {
-            if (serialCommandLength > 0 && !serialCommandOverflow) {
-                serialCommandBuffer[serialCommandLength] = '\0';
+            if (
+                serialCommandLength > 0U &&
+                !serialCommandOverflow
+            ) {
+                serialCommandBuffer[
+                    serialCommandLength
+                ] = '\0';
 
                 processRelayCommand(serialCommandBuffer);
             } else if (serialCommandOverflow) {
                 Serial.println("Comando demasiado largo.");
             }
 
-            serialCommandLength = 0;
+            serialCommandLength = 0U;
             serialCommandOverflow = false;
         } else {
             if (!serialCommandOverflow) {
                 bool bufferHasAvailableSpace =
-                    (serialCommandLength < SERIAL_COMMAND_BUFFER_SIZE - 1);
+                    (serialCommandLength <
+                     SERIAL_COMMAND_BUFFER_SIZE - 1U);
 
                 if (bufferHasAvailableSpace) {
-                    serialCommandBuffer[serialCommandLength] = receivedCharacter;
+                    serialCommandBuffer[
+                        serialCommandLength
+                    ] = receivedCharacter;
+
                     serialCommandLength++;
                 } else {
                     serialCommandOverflow = true;
@@ -913,15 +720,26 @@ void processSerialInput() {
     }
 }
 
+// --------------------------------------------------
+// Arduino setup / loop
+// --------------------------------------------------
+
 void setup() {
-    bool waterPumpAdded = relayManager.addRelay(&waterPumpRelay);
-    bool extractorAdded = relayManager.addRelay(&extractorRelay);
-    bool lightAdded = relayManager.addRelay(&lightRelay);
-    bool humidifierAdded = relayManager.addRelay(&humidifierRelay);
+    bool waterPumpAdded =
+        relayManager.addRelay(&waterPumpRelay);
+
+    bool extractorAdded =
+        relayManager.addRelay(&extractorRelay);
+
+    bool lightAdded =
+        relayManager.addRelay(&lightRelay);
+
+    bool humidifierAdded =
+        relayManager.addRelay(&humidifierRelay);
 
     /*
-     * Primero se inicializan los GPIO y se aplica el estado seguro.
-     * Solo luego iniciamos la interfaz serial.
+     * Primero: GPIO y estado seguro.
+     * Después: interfaz serial.
      */
     relayManager.begin();
     relayManager.applySafeStateToAll();
@@ -944,17 +762,8 @@ void setup() {
     Serial.print("Humidificador agregado: ");
     Serial.println(humidifierAdded ? "SI" : "NO");
 
-    relayManager.printStatus();
-    testActuatorCatalog();
+    printSystemStatus();
     printCommandHelp();
-    if (ENABLE_TIMER_MANAGER_TEST) {
-    startTimerManagerTest();
-    }
-
-    if (ENABLE_VALIDATOR_TEST) {
-        testRelayCommandValidator();
-    }    
-
 }
 
 void loop() {

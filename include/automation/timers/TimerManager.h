@@ -5,6 +5,7 @@
 #include "automation/commands/CommandSource.h"
 #include "automation/timers/RelayTimer.h"
 #include "core/RelaySystemLimits.h"
+#include "automation/timers/TimerStatus.h"
 
 /*
  * Administra timers temporales.
@@ -40,6 +41,14 @@ public:
 
     bool hasActiveTimer(uint8_t relayId) const;
     bool hasAvailableTimerSlot() const;
+
+    uint8_t getActiveTimerCount() const;
+
+    bool getActiveTimerStatusByIndex(
+        uint8_t activeTimerIndex,
+        uint32_t nowMs,
+        TimerStatus& timerStatus
+    ) const;
 
     bool takeNextExpiredTimer(
         uint32_t nowMs,

@@ -32,6 +32,8 @@ public:
     void cancel();
 
     bool isExpired(uint32_t nowMs) const;
+    uint32_t getRemainingDurationMs(uint32_t nowMs) const;
+
     bool isActive() const;
     bool matchesRelayId(uint8_t relayId) const;
 

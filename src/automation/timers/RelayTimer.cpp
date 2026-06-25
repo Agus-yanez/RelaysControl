@@ -79,4 +79,18 @@ CommandSource RelayTimer::getSource() const {
 
     return source;
 }
+uint32_t RelayTimer::getRemainingDurationMs(uint32_t nowMs) const {
+    uint32_t remainingDurationMs = 0U;
 
+    if (_active) {
+        uint32_t elapsedDurationMs =
+            nowMs - _startedAtMs;
+
+        if (elapsedDurationMs < _durationMs) {
+            remainingDurationMs =
+                _durationMs - elapsedDurationMs;
+        }
+    }
+
+    return remainingDurationMs;
+}
