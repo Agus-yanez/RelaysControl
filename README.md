@@ -17,7 +17,7 @@
 ### Modular and safety-oriented relay control system built with C++ and PlatformIO
 
 ![ESP32](https://img.shields.io/badge/ESP32-ESP--WROOM--32-000000?style=for-the-badge&logo=espressif)
-![PlatformIO](https://img.shields.io/badge/PlatformIO-Project-F5822A?style=for-the-badge&logo=platformio&logoColor=white)
+[![PlatformIO CI](https://github.com/Agus-yanez/RelaysControl/actions/workflows/platformio.yml/badge.svg)](https://github.com/Agus-yanez/RelaysControl/actions/workflows/platformio.yml)
 ![C++](https://img.shields.io/badge/C++-Object--Oriented-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active_Development-2EA44F?style=for-the-badge)
 
