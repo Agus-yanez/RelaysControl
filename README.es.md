@@ -22,12 +22,12 @@
     alt="ESP32 WROOM-32"
   />
   <img
-    src="https://img.shields.io/github/actions/workflow/status/Agus-yanez/RelaysControl/platformio.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=build"
-    alt="PlatformIO Build"
-  />
+    src="https://img.shields.io/github/actions/workflow/status/Agus-yanez/RelaysControl/platformio.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=compilaci%C3%B3n"
+    alt="Compilación con PlatformIO"
+  />  
   <img
-    src="https://img.shields.io/badge/C++-Object--Oriented-00599C?style=for-the-badge&logo=cplusplus&logoColor=white"
-    alt="Object-Oriented C++"
+    src="https://img.shields.io/badge/C++-Orientado_a_Objetos-00599C?style=for-the-badge&logo=cplusplus&logoColor=white"
+    alt="C++ orientado a objetos"
   />
   <img
     src="https://img.shields.io/badge/Estado-Desarrollo_Activo-2EA44F?style=for-the-badge"
