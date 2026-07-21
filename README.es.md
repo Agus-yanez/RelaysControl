@@ -4,7 +4,7 @@
 
 <p align="center">
   <img
-    src="./docs/images/relayscontrol-social-preview.png"
+    src="./RelayControl.png"
     alt="ESP32 Relay Automation"
     width="100%"
   />
