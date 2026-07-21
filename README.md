@@ -16,10 +16,28 @@
 
 ### Modular and safety-oriented relay control system built with C++ and PlatformIO
 
-![ESP32](https://img.shields.io/badge/ESP32-ESP--WROOM--32-000000?style=for-the-badge&logo=espressif)
-[![PlatformIO CI](https://github.com/Agus-yanez/RelaysControl/actions/workflows/platformio.yml/badge.svg)](https://github.com/Agus-yanez/RelaysControl/actions/workflows/platformio.yml)
-![C++](https://img.shields.io/badge/C++-Object--Oriented-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Active_Development-2EA44F?style=for-the-badge)
+<p align="center">
+  <img
+    src="https://img.shields.io/badge/ESP32-WROOM--32-1F6FEB?style=for-the-badge&logo=espressif&logoColor=white"
+    alt="ESP32 WROOM-32"
+  />
+  <img
+    src="https://img.shields.io/github/actions/workflow/status/Agus-yanez/RelaysControl/platformio.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=build"
+    alt="PlatformIO Build"
+  />
+  <img
+    src="https://img.shields.io/badge/C++-Object--Oriented-00599C?style=for-the-badge&logo=cplusplus&logoColor=white"
+    alt="Object-Oriented C++"
+  />
+  <img
+    src="https://img.shields.io/badge/PlatformIO-Project-F5822A?style=for-the-badge&logo=platformio&logoColor=white"
+    alt="PlatformIO"
+  />
+  <img
+    src="https://img.shields.io/badge/Status-Active_Development-2EA44F?style=for-the-badge"
+    alt="Active Development"
+  />
+</p>
 
 </div>
 
