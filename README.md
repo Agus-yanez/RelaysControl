@@ -2,6 +2,14 @@
   <strong>English</strong> | <a href="./README.es.md">Español</a>
 </p>
 
+<p align="center">
+  <img
+    src="./docs/images/relayscontrol-social-preview.png"
+    alt="ESP32 Relay Automation"
+    width="100%"
+  />
+</p>
+
 <div align="center">
 
 # ESP32 Relay Automation
