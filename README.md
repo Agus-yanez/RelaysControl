@@ -30,10 +30,6 @@
     alt="Object-Oriented C++"
   />
   <img
-    src="https://img.shields.io/badge/PlatformIO-Project-F5822A?style=for-the-badge&logo=platformio&logoColor=white"
-    alt="PlatformIO"
-  />
-  <img
     src="https://img.shields.io/badge/Status-Active_Development-2EA44F?style=for-the-badge"
     alt="Active Development"
   />
