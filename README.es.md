@@ -2,6 +2,14 @@
   <a href="./README.md">English</a> | <strong>Español</strong>
 </p>
 
+<p align="center">
+  <img
+    src="./docs/images/relayscontrol-social-preview.png"
+    alt="ESP32 Relay Automation"
+    width="100%"
+  />
+</p>
+
 <div align="center">
 
 # Automatización de relés con ESP32
