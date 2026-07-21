@@ -30,8 +30,8 @@
     alt="Object-Oriented C++"
   />
   <img
-    src="https://img.shields.io/badge/Status-Active_Development-2EA44F?style=for-the-badge"
-    alt="Active Development"
+    src="https://img.shields.io/badge/Estado-Desarrollo_Activo-2EA44F?style=for-the-badge"
+    alt="Desarrollo Activo"
   />
 </p>
 
